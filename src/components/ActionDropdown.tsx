@@ -1,220 +1,132 @@
 'use client'
 import React, { useState } from 'react'
-import { ActionType, fileDocument } from '../../types'
+import Image from 'next/image'
+import { usePathname, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Download, Eye, History, Info, Pencil, Star, Trash2, UserPlus } from 'lucide-react'
+import { fileDocument } from '../../types'
 import { Button } from './ui/button'
-import { DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
-import {
-    Dialog,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuSubContent,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Image from 'next/image'
-import { actionsDropdownItems } from '../../constants'
-
-import { constructDownloadUrl } from '@/lib/utils'
-import Link from 'next/link'
+import { cn, fileDownloadUrl } from '@/lib/utils'
 import { Input } from './ui/input'
-import { rename } from 'fs'
-import { deleteFileUsers, renameFile, updateFileUsers } from '@/lib/appwrite/actions/file.action'
-import { usePathname } from 'next/navigation'
-import { boolean, keyof } from 'zod'
-import FileDetails, { ShareInput } from './FileDetails'
+import { renameFile } from '@/lib/appwrite/actions/file.action'
+import { restoreItems, toggleStar, trashItems } from '@/lib/appwrite/actions/lifecycle.action'
+import { useLifecycle } from './lifecycle/LifecycleProvider'
+import { errorToast, undoToast } from '@/lib/undo'
 
-const ActionDropdown = ({ file, className }: { file: fileDocument, className?: string }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-    const [action, setAction] = useState<ActionType | null>(null)
-    const [name, setName] = useState(file.name)
+// Moves one file to the trash and offers Undo; shared by the card menu, the viewer and the Storage page
+export const trashFileWithUndo = async (file: fileDocument, path: string, refresh: () => void) => {
+    const result = await trashItems({ fileIds: [file.$id], path })
+    if (!result.ok) return errorToast(result.error)
+    undoToast(`"${file.name}" moved to trash`, async () => {
+        const undo = await restoreItems({ fileIds: [file.$id], path })
+        if (!undo.ok) errorToast(undo.error)
+        else toast('Restored from trash')
+        refresh()
+    })
+    refresh()
+}
+
+// Stars or unstars one file; Undo flips it back
+export const starFileWithUndo = async (file: fileDocument, starred: boolean, path: string, refresh: () => void) => {
+    const result = await toggleStar({ fileId: file.$id, starred, path })
+    if (!result.ok) return errorToast(result.error)
+    undoToast(starred ? `"${file.name}" added to Starred` : `"${file.name}" removed from Starred`, async () => {
+        const undo = await toggleStar({ fileId: file.$id, starred: !starred, path })
+        if (!undo.ok) errorToast(undo.error)
+        refresh()
+    })
+    refresh()
+}
+
+const ActionDropdown = ({ file, className, files, index }: {
+    file: fileDocument,
+    className?: string,
+    // The list the file is shown in, so Open can step through it
+    files?: fileDocument[],
+    index?: number,
+}) => {
+    const [renaming, setRenaming] = useState(false)
+    const [name, setName] = useState(file.name.replace(new RegExp(`\\.${file.extension}$`), ''))
     const [isloading, setIsloading] = useState(false)
-    const [emails, setEmails] = useState<string[]>([])
     const path = usePathname()
+    const router = useRouter()
+    const { openPreview, openDetails, openVersions, openShare } = useLifecycle()
+    // The server checks again; this only hides what would be refused
+    const role = file.role ?? 'owner'
+    const canEdit = role === 'owner' || role === 'editor'
 
-
-
-
-    const renderDialogConetent = () => {
-
-        const closeAllModels = () => {
-            setIsModalOpen(false)
-            setIsDropdownOpen(false)
-            setAction(null)
-            setName(file.name)
+    const rename = async () => {
+        setIsloading(true)
+        try {
+            await renameFile({ fileId: file.$id, name, extension: file.extension, path })
+            setRenaming(false)
+        } catch {
+            errorToast("Couldn't rename the file")
+        } finally {
+            setIsloading(false)
         }
-
-        const handleAction = async () => {
-            if (!action) {
-                return false
-            }
-            setIsloading(true)
-            let success = false
-            const actions = {
-                rename: () => {
-                    return renameFile({ fileId: file.$id, name, extension: file.extension, path })
-                },
-                share: () => {
-                    return updateFileUsers({ fileId: file.$id, emails, path });
-
-                },
-                delete: () => {
-                    return deleteFileUsers({
-                        fileId: file.$id,
-                        bucketFileId: file.bucketField,
-                        path
-                    });
-
-                }
-            }
-
-            success = await actions[action.value as keyof typeof actions]()
-            if (success) {
-                closeAllModels()
-                setIsloading(false)
-            }
-        }
-
-        const handleRemove = async (email: string) => {
-            const UpdatedEmails = emails.filter((e) => e !== email)
-            const success = await updateFileUsers({
-                fileId: file.$id,
-                emails,
-                path
-            })
-
-            if (success) {
-                setEmails(UpdatedEmails)
-            }
-            closeAllModels()
-
-
-
-        }
-
-        if (!action) {
-            return null
-        }
-        const { value, label } = action
-        return (
-            <DialogContent className="shad-dialog button">
-                <DialogHeader className="flex flex-col gap-3">
-                    <DialogTitle className="text-center text-light-100">{label}</DialogTitle>
-
-                    {value === "rename" && (
-                        <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                        />
-                    )}
-                    {
-                        value === "details" && <FileDetails file={file} />
-                    },
-                    {value === "share" && (
-                        <ShareInput
-                            file={file}
-                            onInputChange={setEmails}
-                            onRemove={handleRemove}
-                        />
-                    )},
-                    {
-                        value === "delete" && (
-                            <p className='delete-confirmation'>
-                                Are you shure you want to delete <span className='delete-file-name'>{file.name}</span>?
-                            </p>
-                        )
-                    }
-
-                </DialogHeader>
-
-                {['rename', 'download', 'share', 'delete'].includes(value) && (
-                    <DialogFooter className="flex flex-col gap-3 md:flex-row">
-                        <Button onClick={closeAllModels} className="modal-cancel-button">
-                            close
-                        </Button>
-
-                        <Button onClick={handleAction} className="modal-submit-button">
-                            <p className="capitalize">{value}</p>
-                            {isloading && (
-                                <Image
-                                    src="/assets/icons/loader.svg"
-                                    alt="loader"
-                                    width={24}
-                                    height={24}
-                                    className="animate-spin"
-                                />
-                            )}
-                        </Button>
-                    </DialogFooter>
-                )}
-            </DialogContent>
-
-        )
     }
 
-
+    const star = () => starFileWithUndo(file, !file.isStarred, path, router.refresh)
 
     return (
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen} >
-            <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-                <DropdownMenuTrigger className="shad-no-focus" >
-                    <Image
-                        src="/assets/icons/dots.svg"
-                        alt="dots"
-                        width={34}
-                        height={34}
-                    /></DropdownMenuTrigger>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger className={cn("shad-no-focus", className)} onClick={(e) => e.stopPropagation()} aria-label={`More actions for ${file.name}`}>
+                    <Image src="/assets/icons/dots.svg" alt="" width={34} height={34} />
+                </DropdownMenuTrigger>
 
-                <DropdownMenuContent >
-                    <DropdownMenuLabel className="max-w-[200px] truncate">{file.name}</DropdownMenuLabel>
+                <DropdownMenuContent onClick={(e) => e.stopPropagation()} className='browser-menu'>
+                    <DropdownMenuLabel className="max-w-[220px] truncate">{file.name}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {
-                        actionsDropdownItems.map((actionItem) => {
-                            return <DropdownMenuItem
-                                key={actionItem.value}
-                                className='shad-dropdown-item'
-                                onClick={() => {
-                                    setAction(actionItem)
-
-                                    if (["rename", "share", "delete", "details", "others"].includes(actionItem.value)) {
-                                        setIsModalOpen(true)
-                                    }
-                                }}
-                            >
-                                {actionItem.value === "download" ? <Link
-                                    href={constructDownloadUrl(file.bucketField)}
-                                    download={file.name}
-                                    className='flex items-center gap-2'
-                                >
-                                    <Image
-                                        src={actionItem.icon}
-                                        alt={actionItem.label}
-                                        width={30}
-                                        height={30}
-                                    />
-                                    {actionItem.label}
-                                </Link> : <div className='flex items-center gap-2'>
-                                    <Image
-                                        src={actionItem.icon}
-                                        alt={actionItem.label}
-                                        width={30}
-                                        height={30}
-                                    />
-
-                                    {actionItem.label}
-                                </div>}
-
+                    <DropdownMenuItem onSelect={() => openPreview(files ?? [file], files ? index ?? 0 : 0)}><Eye />Open</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <a href={fileDownloadUrl(file.$id)} download={file.name}><Download />Download</a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {canEdit && <DropdownMenuItem onSelect={() => setRenaming(true)}><Pencil />Rename</DropdownMenuItem>}
+                    {canEdit && <DropdownMenuItem onSelect={() => openShare(file)}><UserPlus />Share</DropdownMenuItem>}
+                    <DropdownMenuItem onSelect={star}>
+                        <Star className={cn(file.isStarred && 'fill-current')} />{file.isStarred ? 'Remove from Starred' : 'Add to Starred'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openDetails({ kind: 'file', file })}><Info />Details</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openVersions(file)}><History />Manage versions</DropdownMenuItem>
+                    {role === 'owner' && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className='browser-menu-danger' onSelect={() => trashFileWithUndo(file, path, router.refresh)}>
+                                <Trash2 />Move to trash
                             </DropdownMenuItem>
-                        })
-                    }
+                        </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
-            {renderDialogConetent()}
-        </Dialog>
+
+            <Dialog open={renaming} onOpenChange={setRenaming}>
+                <DialogContent className="shad-dialog button" onClick={(e) => e.stopPropagation()}>
+                    <DialogHeader className="flex flex-col gap-3">
+                        <DialogTitle className="text-center text-light-100">Rename</DialogTitle>
+                        <Input value={name} onChange={(e) => setName(e.target.value)} aria-label='Name' autoFocus />
+                    </DialogHeader>
+                    <DialogFooter className="flex flex-col gap-3 md:flex-row">
+                        <Button onClick={() => setRenaming(false)} className="modal-cancel-button">Cancel</Button>
+                        <Button onClick={rename} className="modal-submit-button" disabled={isloading || !name.trim()}>
+                            <p>Rename</p>
+                            {isloading && <Image src="/assets/icons/loader.svg" alt="loader" width={24} height={24} className="animate-spin" />}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }
 

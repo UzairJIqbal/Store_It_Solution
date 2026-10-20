@@ -1,129 +1,192 @@
 'use client'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from './ui/button'
-import { cn, getFileType } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import Image from 'next/image'
-import Thumbnail from './Thumbnail'
-import { MAX_FILE_SIZE } from '../../constants'
-import { toast } from "sonner"
-import { UploadFile } from '@/lib/appwrite/actions/file.action'
 import { usePathname } from 'next/navigation'
-import { UploadFileProps } from "../../types/index"
+import { toast } from 'sonner'
+import { isIgnoredFile, readDrop } from '@/lib/upload/collectDrop'
+import { useUploadQueue } from '@/lib/upload/useUploadQueue'
+import UploadTray from './upload/UploadTray'
+import ClashDialog from './upload/ClashDialog'
+
 interface Props {
     accountId: string,
     ownerId: string,
-    className?: string
+    className?: string,
+    // Accept files and folders dropped anywhere in the window. Enable on one mounted instance only.
+    globalDrop?: boolean
 }
 
+interface DropTarget {
+    folderId: string | null,
+    name: string,
+    // A folder row under the pointer, highlighted while dragging over it
+    element: HTMLElement | null,
+}
 
-const FileUploader = ({ ownerId, accountId, className }: Props) => {
+const ROOT_NAME = 'My Files'
+
+const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
+
+// Other components (the New menu, the U shortcut) open the file picker by dispatching this event
+export const OPEN_UPLOAD_PICKER_EVENT = 'storeit:open-upload-picker'
+
+// Uploads made while viewing /folders/<id> go into that folder
+const folderIdFromPath = (path: string) => path.match(/^\/folders\/([^/]+)/)?.[1] ?? null
+
+// The file browser marks folder rows and its own content area with data-upload-folder-id / -name
+const targetAt = (node: EventTarget | null, path: string): DropTarget => {
+    const row = node instanceof Element ? node.closest<HTMLElement>('[data-upload-folder-row]') : null
+    if (row) return { folderId: row.dataset.uploadFolderId || null, name: row.dataset.uploadFolderName ?? ROOT_NAME, element: row }
+    const current = document.querySelector<HTMLElement>('[data-upload-current-folder]')
+    if (current) return { folderId: current.dataset.uploadFolderId || null, name: current.dataset.uploadFolderName ?? ROOT_NAME, element: null }
+    return { folderId: folderIdFromPath(path), name: ROOT_NAME, element: null }
+}
+
+const FileUploader = ({ className, globalDrop = false }: Props) => {
     const path = usePathname()
-    const [files, setFiles] = useState<File[]>([]);
-    const handleRemoveFile = (
-        e: React.MouseEvent<HTMLImageElement, MouseEvent>,
-        fileName: string
-    ) => {
-        e.stopPropagation()
-        setFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName))
+    const queue = useUploadQueue({ path })
+    const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
+    const highlighted = useRef<HTMLElement | null>(null)
+
+    const highlight = (element: HTMLElement | null) => {
+        if (highlighted.current === element) return
+        highlighted.current?.classList.remove('drop-target-active')
+        element?.classList.add('drop-target-active')
+        highlighted.current = element
     }
-    const onDrop = useCallback(
-        async (acceptedFiles: File[]) => {
-            setFiles(acceptedFiles);
 
-            const uploadPromises = acceptedFiles.map(async (file) => {
-                if (file.size > MAX_FILE_SIZE) {
-                    setFiles((prevFiles) =>
-                        prevFiles.filter((f) => f.name !== file.name),
-                    );
+    const { enqueue } = queue
+    const upload = useCallback((contents: Awaited<ReturnType<typeof readDrop>>, target: DropTarget) => {
+        if (contents.files.length === 0 && contents.dirs.length === 0) return
+        void enqueue(contents, target.folderId, target.name)
+    }, [enqueue])
 
-                    return toast("File Size is too Large", {
-                        description: (
-                            <p className="body-2 text-white">
-                                <span className="font-semibold">{file.name}</span> is too large.
-                                Max file size is 50MB.
-                            </p>
-                        ),
-                        className: "error-toast",
-                    });
-                }
+    const pickFiles = useCallback((files: File[]) => {
+        const kept = files.filter((f) => !isIgnoredFile(f.name))
+        upload({ files: kept.map((file) => ({ file, dir: '' })), dirs: [], roots: [] }, targetAt(null, path))
+    }, [path, upload])
 
-                return UploadFile({ file, ownerId, accountId, path }).then(
-                    (UploadFile) => {
-                        if (UploadFile) {
-                            setFiles((prevFiles) =>
-                                prevFiles.filter((f) => f.name !== file.name),
-                            );
-                        }
-                    },
-                );
-            });
+    // Window-level drop target, so files and folders can be dropped anywhere on the page
+    useEffect(() => {
+        if (!globalDrop) return
+        let depth = 0
 
-            await Promise.all(uploadPromises);
-        },
-        [ownerId, accountId, path],
-    );
+        const reset = () => {
+            depth = 0
+            highlight(null)
+            setDropTarget(null)
+        }
+        const onDragEnter = (e: DragEvent) => {
+            if (!hasFiles(e)) return
+            e.preventDefault()
+            depth++
+        }
+        const onDragOver = (e: DragEvent) => {
+            if (!hasFiles(e)) return
+            e.preventDefault()
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+            const target = targetAt(e.target, path)
+            highlight(target.element)
+            setDropTarget((prev) => (prev?.folderId === target.folderId && prev?.name === target.name ? prev : target))
+        }
+        const onDragLeave = (e: DragEvent) => {
+            if (!hasFiles(e)) return
+            depth = Math.max(0, depth - 1)
+            if (depth === 0) reset()
+        }
+        const onDrop = (e: DragEvent) => {
+            if (!hasFiles(e) || !e.dataTransfer) return
+            e.preventDefault()
+            const target = targetAt(e.target, path)
+            reset()
+            readDrop(e.dataTransfer)
+                .then((contents) => upload(contents, target))
+                .catch(() => toast("Couldn't read the dropped items", { className: 'error-toast' }))
+        }
 
-    const { getRootProps, getInputProps } = useDropzone({ onDrop })
+        window.addEventListener('dragenter', onDragEnter)
+        window.addEventListener('dragover', onDragOver)
+        window.addEventListener('dragleave', onDragLeave)
+        window.addEventListener('drop', onDrop)
+        return () => {
+            window.removeEventListener('dragenter', onDragEnter)
+            window.removeEventListener('dragover', onDragOver)
+            window.removeEventListener('dragleave', onDragLeave)
+            window.removeEventListener('drop', onDrop)
+        }
+    }, [globalDrop, path, upload])
+
+    // With globalDrop the window handles drops, so the button only opens the file picker
+    const { getRootProps, getInputProps, open } = useDropzone({ onDrop: pickFiles, noDrag: globalDrop })
+
+    useEffect(() => {
+        if (!globalDrop) return
+        window.addEventListener(OPEN_UPLOAD_PICKER_EVENT, open)
+        return () => window.removeEventListener(OPEN_UPLOAD_PICKER_EVENT, open)
+    }, [globalDrop, open])
+
+    // Leaving the page would stop the uploads
+    const uploading = queue.summary.active > 0
+    useEffect(() => {
+        if (!uploading) return
+        const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+        window.addEventListener('beforeunload', warn)
+        return () => window.removeEventListener('beforeunload', warn)
+    }, [uploading])
 
     return (
-        <div {...getRootProps()} className="cursor-pointer">
-            <input {...getInputProps()} />
-            <Button
-                type='submit'
-                className={cn('uploader-button', className)}
-            >
-                <Image
-                    src="/assets/icons/upload.svg"
-                    alt="upload"
-                    width={24}
-                    height={24}
+        <>
+            <div {...getRootProps()} className="cursor-pointer">
+                <input {...getInputProps()} />
+                <Button
+                    type='button'
+                    className={cn('uploader-button', className)}
+                >
+                    <Image
+                        src="/assets/icons/upload.svg"
+                        alt="upload"
+                        width={24}
+                        height={24}
+                    />
+                    <p>Upload</p>
+                </Button>
+            </div>
+
+            {dropTarget && (
+                <div className='uploader-drop-overlay' aria-hidden>
+                    <div className='uploader-drop-message'>
+                        <Image src="/assets/icons/upload.svg" alt="" width={24} height={24} />
+                        <p>Drop to upload to <span className='font-semibold'>{dropTarget.name}</span></p>
+                    </div>
+                </div>
+            )}
+
+            {queue.rows.length > 0 && (
+                <UploadTray
+                    rows={queue.rows}
+                    summary={queue.summary}
+                    online={queue.online}
+                    etaSeconds={queue.etaSeconds}
+                    onCancel={queue.cancel}
+                    onCancelAll={queue.cancelAll}
+                    onRetry={queue.retry}
+                    onDismiss={queue.dismiss}
+                    onClose={queue.clear}
                 />
-                <p>Upload</p>
-            </Button>
-            {
-                files.length > 0 && (
-                    <ul className='uploader-preview-list'>
-                        <h4 className='h4 text-light-100'>Uploading</h4>
-                        {
-                            files.map((file, index) => {
-                                const { type, extension } = getFileType(file.name)
-                                return (
-                                    <li key={`${file.name} - ${index}`}
-                                        className='uploader-preview-item'>
-                                        <div className='flex items-center gap-3'>
-                                            <Thumbnail
-                                                type={type}
-                                                extension={extension}
-                                                url={URL.createObjectURL(file)}
-                                            />
+            )}
 
-                                            <div className='preview-item-new'>
-                                                {file.name}
-                                                <Image src="/assets/icons/file-loader.gif"
-                                                    alt='loader'
-                                                    width={80}
-                                                    height={26}
-                                                />
-                                            </div>
-                                        </div>
-                                        <Image
-                                            src="/assets/icons/remove.svg"
-                                            width={24}
-                                            height={24}
-                                            alt="Remove"
-                                            onClick={(e) => handleRemoveFile(e, file.name)}
-                                        />
-                                    </li>
-                                )
-                            })
-                        }
-                    </ul>
-                )
-
-
-            }
-        </div>
+            {queue.prompt && (
+                <ClashDialog
+                    key={queue.prompt.id}
+                    names={queue.promptNames}
+                    folderName={queue.prompt.folderName}
+                    onResolve={(choice) => queue.resolveClash(queue.prompt!.id, choice)}
+                />
+            )}
+        </>
     )
 }
 

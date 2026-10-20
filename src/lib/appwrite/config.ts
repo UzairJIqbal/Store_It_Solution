@@ -4,6 +4,12 @@ export const appwriteConfig = {
     databaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
     userCollectionId: process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION!,
     filesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_FILES_COLLECTION!,
+    foldersCollectionId: process.env.NEXT_PUBLIC_APPWRITE_FOLDERS_COLLECTION!,
+    sharesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_SHARES_COLLECTION ?? "shares",
+    fileStatesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_FILE_STATES_COLLECTION ?? "fileStates",
+    fileVersionsCollectionId: process.env.NEXT_PUBLIC_APPWRITE_FILE_VERSIONS_COLLECTION ?? "fileVersions",
+    activityCollectionId: process.env.NEXT_PUBLIC_APPWRITE_ACTIVITY_COLLECTION ?? "activity",
+    dropsCollectionId: process.env.NEXT_PUBLIC_APPWRITE_DROPS_COLLECTION ?? "drops",
     bucketId: process.env.NEXT_PUBLIC_APPWRITE_BUCKET!,
     secretKey: process.env.APPWRITE_KEY!,
 }

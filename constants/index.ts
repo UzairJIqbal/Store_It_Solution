@@ -1,8 +1,28 @@
 export const navItems = [
     {
-        name: "Dashboard",
+        name: "Home",
         icon: "/assets/icons/dashboard.svg",
         url: "/",
+    },
+    {
+        name: "My Files",
+        icon: "/assets/icons/folder.svg",
+        url: "/files",
+    },
+    {
+        name: "Shared with me",
+        icon: "/assets/icons/shared.svg",
+        url: "/shared",
+    },
+    {
+        name: "Recent",
+        icon: "/assets/icons/recent.svg",
+        url: "/recent",
+    },
+    {
+        name: "Starred",
+        icon: "/assets/icons/starred.svg",
+        url: "/starred",
     },
     {
         name: "Documents",
@@ -23,6 +43,21 @@ export const navItems = [
         name: "Others",
         icon: "/assets/icons/others.svg",
         url: "/others",
+    },
+    {
+        name: "Drop links",
+        icon: "/assets/icons/drops.svg",
+        url: "/drops",
+    },
+    {
+        name: "Trash",
+        icon: "/assets/icons/trash.svg",
+        url: "/trash",
+    },
+    {
+        name: "Storage",
+        icon: "/assets/icons/storage.svg",
+        url: "/storage",
     },
 ];
 
@@ -48,9 +83,9 @@ export const actionsDropdownItems = [
         value: "download",
     },
     {
-        label: "Delete",
+        label: "Move to trash",
         icon: "/assets/icons/delete.svg",
-        value: "delete",
+        value: "trash",
     },
 ];
 
@@ -84,4 +119,8 @@ export const sortTypes = [
 export const avatarPlaceholderUrl =
     "https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg";
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024;
+// Appwrite's Free plan caps a single file at 50 MB (decimal), and the bucket's limit is set to match
+export const MAX_FILE_SIZE = 50_000_000;
+
+// Per-user storage shown by the storage meter
+export const STORAGE_LIMIT = 2 * 1024 * 1024 * 1024;

@@ -2,6 +2,7 @@
 
 import {
     Label,
+    PolarAngleAxis,
     PolarGrid,
     PolarRadiusAxis,
     RadialBar,
@@ -16,7 +17,7 @@ import {
     CardDescription,
 } from "@/components/ui/card";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { calculatePercentage, convertFileSize } from "@/lib/utils";
+import { convertFileSize, formatUsagePercent, getUsageLevel } from "@/lib/utils";
 
 const chartConfig = {
     size: {
@@ -28,8 +29,10 @@ const chartConfig = {
     },
 } satisfies ChartConfig;
 
-export const Chart = ({ used = 0 }: { used: number }) => {
-    const chartData = [{ storage: "used", 10: used, fill: "white" }];
+export const Chart = ({ used = 0, total }: { used: number; total: number }) => {
+    const percent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+    const level = getUsageLevel(percent);
+    const chartData = [{ name: "used", value: percent, fill: "white" }];
 
     return (
         <Card className="chart">
@@ -38,7 +41,7 @@ export const Chart = ({ used = 0 }: { used: number }) => {
                     <RadialBarChart
                         data={chartData}
                         startAngle={90}
-                        endAngle={Number(calculatePercentage(used)) + 90}
+                        endAngle={-270}
                         innerRadius={80}
                         outerRadius={110}
                     >
@@ -49,7 +52,8 @@ export const Chart = ({ used = 0 }: { used: number }) => {
                             className="polar-grid"
                             polarRadius={[86, 74]}
                         />
-                        <RadialBar dataKey="storage" background cornerRadius={10} />
+                        <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
+                        <RadialBar dataKey="value" cornerRadius={10} />
                         <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
                             <Label
                                 content={({ viewBox }) => {
@@ -66,12 +70,7 @@ export const Chart = ({ used = 0 }: { used: number }) => {
                                                     y={viewBox.cy}
                                                     className="chart-total-percentage"
                                                 >
-                                                    {used && calculatePercentage(used)
-                                                        ? calculatePercentage(used)
-                                                            .toString()
-                                                            .replace(/^0+/, "")
-                                                        : "0"}
-                                                    %
+                                                    {formatUsagePercent(percent)}
                                                 </tspan>
                                                 <tspan
                                                     x={viewBox.cx}
@@ -92,8 +91,13 @@ export const Chart = ({ used = 0 }: { used: number }) => {
             <CardHeader className="chart-details">
                 <CardTitle className="chart-title">Available Storage</CardTitle>
                 <CardDescription className="chart-description">
-                    {used ? convertFileSize(used) : "2GB"} / 2GB
+                    {convertFileSize(used)} of {convertFileSize(total)} used
                 </CardDescription>
+                {level !== "normal" && (
+                    <p className="chart-warning" role="status">
+                        {level === "critical" ? "Storage is almost full" : "You're running low on storage"}
+                    </p>
+                )}
             </CardHeader>
         </Card>
     );

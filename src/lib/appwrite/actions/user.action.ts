@@ -1,6 +1,6 @@
 "use server";
 
-import { createAdminClient, createSessionClient } from "@/lib/appwrite";
+import { createAdminClient } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import { Query, ID } from "node-appwrite";
 import { paresStringify } from "@/lib/utils";
@@ -12,8 +12,25 @@ import { get } from "http";
 import { decode } from "punycode";
 import { redirect } from "next/navigation";
 import { string } from "zod";
+import { randomInt, timingSafeEqual } from "crypto";
+
+const OTP_LENGTH = 6;
+// Wrong codes allowed before the code is thrown away and a new one must be requested
+const MAX_OTP_ATTEMPTS = 5;
+
+// A 6-digit code from the OS's secure random source (Math.random is predictable)
+const generateOtp = () => randomInt(0, 10 ** OTP_LENGTH).toString().padStart(OTP_LENGTH, "0");
+
+const otpMatches = (stored: string | null | undefined, given: string) => {
+    if (!stored || stored.length !== given.length) return false;
+    return timingSafeEqual(Buffer.from(stored), Buffer.from(given));
+};
+
+// Emails are stored and compared lowercased, so sign-in and sharing agree on who someone is
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 const getUserByEmail = async (email: string) => {
+    email = normalizeEmail(email);
     const { databases } = await createAdminClient();
     const result = await databases.listDocuments(
         appwriteConfig.databaseId,
@@ -35,9 +52,10 @@ export const createAccount = async ({
     fullName: string;
     email: string;
 }) => {
+    email = normalizeEmail(email);
     const existingUser = await getUserByEmail(email);
 
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const otp = generateOtp();
 
     const emailResponse = await sendVerificationEmail(email, otp);
     if (!emailResponse.success) throw new Error(emailResponse.message);
@@ -55,6 +73,7 @@ export const createAccount = async ({
                 email,
                 avatar: avatarPlaceholderUrl,
                 otp,
+                otpAttempts: 0,
                 expireAt: new Date(Date.now() + 20 * 60 * 1000),
                 accountId
             }
@@ -66,6 +85,7 @@ export const createAccount = async ({
             existingUser.$id,
             {
                 otp,
+                otpAttempts: 0,
                 expireAt: new Date(Date.now() + 20 * 60 * 1000)
             }
         );
@@ -85,14 +105,29 @@ export const verifySecret = async ({
     otp: string;
 }) => {
     try {
-        await createAdminClient();
         const user = await getUserByEmail(email);
         if (!user) throw new Error("User not found");
 
 
-        if (user.otp !== otp || new Date(user.expireAt) < new Date()) {
+        const { databases } = await createAdminClient();
+        if (!otpMatches(user.otp, otp) || !user.expireAt || new Date(user.expireAt) < new Date()) {
+            // Too many wrong guesses throw the code away, so a 6-digit code can't be brute-forced
+            const attempts = (user.otpAttempts ?? 0) + 1;
+            if (user.otp) {
+                await databases.updateDocument(appwriteConfig.databaseId, appwriteConfig.userCollectionId, user.$id,
+                    attempts >= MAX_OTP_ATTEMPTS
+                        ? { otp: null, expireAt: null, otpAttempts: 0 }
+                        : { otpAttempts: attempts });
+            }
             throw new Error("Invalid or expired OTP");
         }
+
+        // Each code works once
+        await databases.updateDocument(appwriteConfig.databaseId, appwriteConfig.userCollectionId, user.$id, {
+            otp: null,
+            expireAt: null,
+            otpAttempts: 0,
+        });
 
         const token = jwt.sign(
             { userId: user.$id, email: user.email },
@@ -138,16 +173,10 @@ export const getCurrentUser = async () => {
     }
 }
 
+// The session cookie holds the app's own JWT, not an Appwrite session, so signing out only clears the cookie
 export const signOutUser = async () => {
-    const { account } = await createSessionClient()
-    try {
-        await account.deleteSession("current");
-        (await cookies()).delete("appwrite-session");
-    } catch (error: any) {
-        handleError(error, "Failed to sign out user")
-    } finally {
-        redirect("/sign-in")
-    }
+    (await cookies()).delete("appwrite-session");
+    redirect("/sign-in")
 }
 
 export const signInuser = async ({ email }: { email: string }) => {
@@ -155,20 +184,19 @@ export const signInuser = async ({ email }: { email: string }) => {
 
         const existingUser = await getUserByEmail(email);
         if (existingUser) {
-            const otp = Math.floor(1000 + Math.random() * 9000).toString();
-            if (existingUser.otp !== otp || new Date(existingUser.expireAt) < new Date()) {
-                const { databases } = await createAdminClient()
-                await databases.updateDocument(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.userCollectionId,
-                    existingUser.$id,
-                    {
-                        otp,
-                        expireAt: new Date(Date.now() + 20 * 60 * 1000)
-                    }
-
-                )
-            }
+            // A new code replaces any earlier one
+            const otp = generateOtp();
+            const { databases } = await createAdminClient()
+            await databases.updateDocument(
+                appwriteConfig.databaseId,
+                appwriteConfig.userCollectionId,
+                existingUser.$id,
+                {
+                    otp,
+                    otpAttempts: 0,
+                    expireAt: new Date(Date.now() + 20 * 60 * 1000)
+                }
+            )
             await sendVerificationEmail(email, otp);
         } else {
             if (!existingUser) {

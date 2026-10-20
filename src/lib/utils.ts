@@ -170,9 +170,13 @@ export const formatDateTime = (isoString: string | null | undefined) => {
 
   return `${time}, ${day} ${month}`;
 };
-export const constructDownloadUrl = (bucketFileId: string) => {
-  return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_APPWRITE_BUCKET}/files/${bucketFileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
-};
+// The bucket is private: bytes are served by /api/files/[id] after an access check.
+// A public link token (from /s/[token]) lets people without an account through.
+export const fileViewUrl = (fileId: string, linkToken?: string) =>
+  `/api/files/${fileId}${linkToken ? `?t=${encodeURIComponent(linkToken)}` : ""}`;
+
+export const fileDownloadUrl = (fileId: string, linkToken?: string) =>
+  `/api/files/${fileId}?download=1${linkToken ? `&t=${encodeURIComponent(linkToken)}` : ""}`;
 export const getFileTypesParams = (type: string) => {
   switch (type) {
     case "documents":
@@ -225,8 +229,51 @@ export const getUsageSummary = (totalSpace: any) => {
   ]
 }
 
+export type UsageLevel = "normal" | "warning" | "critical";
+
+export const getUsageLevel = (percent: number): UsageLevel => {
+  if (percent >= 95) return "critical";
+  if (percent >= 80) return "warning";
+  return "normal";
+};
+
+// Small non-zero usage reads as "<1%" rather than a misleading "0%"
+export const formatUsagePercent = (percent: number) => {
+  if (percent <= 0) return "0%";
+  if (percent < 1) return "<1%";
+  return `${Math.round(percent)}%`;
+};
+
 export const calculatePercentage = (sizeInBytes: number) => {
   const totalSizeInBytes = 2 * 1024 * 1024 * 1024; // 2GB in bytes
   const percentage = (sizeInBytes / totalSizeInBytes) * 100;
   return Number(percentage.toFixed(2));
 };
+
+// Folder pages live under /folders/<id> but belong to the "My Files" nav item
+export const isNavActive = (pathname: string, url: string) =>
+  pathname === url || (url === "/files" && pathname.startsWith("/folders/"));
+
+// Recency groups, newest first, used by the Shared, Recent and Trash lists
+export const recencyGroup = (iso: string, now: Date) => {
+    const date = new Date(iso)
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const day = 24 * 60 * 60 * 1000
+    if (date >= startOfDay) return 'Today'
+    if (date >= new Date(startOfDay.getTime() - day)) return 'Yesterday'
+    if (date >= new Date(startOfDay.getTime() - 6 * day)) return 'Earlier this week'
+    if (date >= new Date(now.getFullYear(), now.getMonth(), 1)) return 'Earlier this month'
+    if (date >= new Date(now.getFullYear(), now.getMonth() - 1, 1)) return 'Last month'
+    if (date >= new Date(now.getFullYear(), 0, 1)) return 'Earlier this year'
+    return 'Older'
+}
+
+// Groups items by recencyGroup, keeping their order
+export const groupByRecency = <T,>(items: T[], at: (item: T) => string, now = new Date()) => {
+    const groups = new Map<string, T[]>()
+    for (const item of items) {
+        const group = recencyGroup(at(item), now)
+        groups.set(group, [...(groups.get(group) ?? []), item])
+    }
+    return [...groups.entries()]
+}

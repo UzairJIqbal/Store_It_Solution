@@ -9,13 +9,15 @@ import {
 import Image from 'next/image';
 import { Separator } from "@/components/ui/separator"
 import { avatarPlaceholderUrl, navItems } from '../../constants';
-import { url } from 'inspector';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, isNavActive } from '@/lib/utils';
 import FileUploader from './FileUploader';
 import { Button } from './ui/button';
 import { signOutUser } from '@/lib/appwrite/actions/user.action';
+import Logo from './brand/Logo';
+import ThemeToggle from './brand/ThemeToggle';
+import { LogOut, Menu } from 'lucide-react';
 
 interface props {
     fullName: string,
@@ -29,21 +31,12 @@ const MobileNavigation = ({ fullName, email, accountId, $id: ownerId }: props) =
     const [open, setOpen] = useState(false)
     return (
         <header className='mobile-header'>
-            <Image
-                src="/assets/icons/logo-full-brand.svg"
-                alt="logo"
-                width={120}
-                height={52}
-                className="h-auto"
-            />
+            <Link href='/' className='flex items-center'>
+                <Logo markClassName='size-9' className='[&>span]:text-[22px]' />
+            </Link>
             <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger asChild>
-                    <Image
-                        src="/assets/icons/menu.svg"
-                        alt="Search"
-                        width={30}
-                        height={30}
-                    />
+                <SheetTrigger className='mobile-menu-trigger' aria-label='Open menu'>
+                    <Menu className='size-6' aria-hidden />
                 </SheetTrigger>
                 <SheetContent className="shad-sheet h-screen px-3">
 
@@ -71,7 +64,7 @@ const MobileNavigation = ({ fullName, email, accountId, $id: ownerId }: props) =
                                     <li
                                         className={cn(
                                             "mobile-nav-item",
-                                            pathname === url && "shad-active",
+                                            isNavActive(pathname, url) && "shad-active",
                                         )}
                                     >
                                         <Image
@@ -81,7 +74,7 @@ const MobileNavigation = ({ fullName, email, accountId, $id: ownerId }: props) =
                                             height={24}
                                             className={cn(
                                                 "nav-icon",
-                                                pathname === url && "nav-icon-active",
+                                                isNavActive(pathname, url) && "nav-icon-active",
                                             )}
                                         />
                                         <p>{name}</p>
@@ -95,17 +88,13 @@ const MobileNavigation = ({ fullName, email, accountId, $id: ownerId }: props) =
 
                     <div className="flex flex-col justify-between gap-5 pb-5">
                         <FileUploader accountId={accountId} ownerId={ownerId} />
+                        <ThemeToggle withLabel className='mobile-theme-toggle' />
                         <Button
                             type="submit"
                             className="mobile-sign-out-button"
                             onClick={async () => await signOutUser()}
                         >
-                            <Image
-                                src="/assets/icons/logout.svg"
-                                alt="logo"
-                                width={24}
-                                height={24}
-                            />
+                            <LogOut className='size-5' aria-hidden />
                             <p>Logout</p>
                         </Button>
                     </div>

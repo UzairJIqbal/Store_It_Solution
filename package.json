@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -24,6 +27,7 @@
     "clsx": "^2.1.1",
     "cookies": "^0.9.1",
     "debounce": "^2.2.0",
+    "fflate": "^0.8.3",
     "init": "^0.1.2",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",

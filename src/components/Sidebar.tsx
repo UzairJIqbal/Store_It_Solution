@@ -3,37 +3,39 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
 import { avatarPlaceholderUrl, navItems } from '../../constants'
-import { cn } from '@/lib/utils'
+import { cn, isNavActive } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
-import path from 'path'
-import { email } from 'zod'
-import { Props } from 'next/script'
+import StorageMeter from './StorageMeter'
+import Logo from './brand/Logo'
+import { ChevronRight } from 'lucide-react'
+import FolderTree, { ROOT_KEY, TreeFolder, useTreeExpansion } from './FolderTree'
 
 type props = {
     fullName: string,
     email: string,
-    avatar: string
+    avatar: string,
+    storage?: { used: number, all: number },
+    folders?: TreeFolder[],
 }
 
-const Sidebar = ({ fullName, email, avatar }: props) => {
+const Sidebar = ({ fullName, email, avatar, storage, folders = [] }: props) => {
     const pathname = usePathname()
+    const tree = useTreeExpansion(folders, pathname)
+    const rootOpen = tree.expanded.has(ROOT_KEY)
     return <aside className='sidebar'>
-        <Link href="/">
-            <Image
-                src="/assets/icons/logo-full.svg"
-                alt='logo'
-                width={200}
-                height={200}
-            />
+        <Link href="/" className='sidebar-logo'>
+            <Logo compact markClassName='size-11' />
         </Link>
 
         <nav className='sidebar-nav'>
             <ul className='flex flex-1 flex-col gap-6'>
                 {
                     navItems.map(({ name, icon, url }) => (
-                        <Link key={name} href={url}>
+                        <React.Fragment key={name}>
+                        <div className='relative'>
+                        <Link href={url}>
                             <li className={cn("sidebar-nav-item", (
-                                pathname === url && "shad-active"
+                                isNavActive(pathname, url) && "shad-active"
                             ))}>
                                 <Image
                                     src={icon}
@@ -41,24 +43,32 @@ const Sidebar = ({ fullName, email, avatar }: props) => {
                                     width={24}
                                     height={24}
                                     className={cn('nav-icon', (
-                                        pathname === url && 'nav-icon-active'
+                                        isNavActive(pathname, url) && 'nav-icon-active'
                                     ))}
                                 />
                                 <p className='hidden lg:block'>{name}</p>
                             </li>
                         </Link>
+                        {url === '/files' && (
+                            <button type='button' className={cn('sidebar-nav-expand', isNavActive(pathname, url) && 'text-white')}
+                                aria-expanded={rootOpen} aria-label={rootOpen ? 'Hide folders' : 'Show folders'}
+                                onClick={() => tree.toggle(ROOT_KEY)}>
+                                <ChevronRight className={cn('size-4 transition-transform', rootOpen && 'rotate-90')} aria-hidden />
+                            </button>
+                        )}
+                        </div>
+                        {url === '/files' && rootOpen && (
+                            <div className='sidebar-tree' aria-label='Folders'>
+                                <FolderTree folders={folders} {...tree} />
+                            </div>
+                        )}
+                        </React.Fragment>
                     ))
                 }
             </ul>
         </nav>
 
-        <Image
-            src="/assets/images/files-2.png"
-            alt='logo'
-            width={506}
-            height={418}
-            className='w-full'
-        />
+        {storage && <StorageMeter used={storage.used} total={storage.all} />}
 
         <div className='sidebar-user-info'>
             <Image
@@ -69,7 +79,7 @@ const Sidebar = ({ fullName, email, avatar }: props) => {
                 className='sidebar-user-avatar'
             />
             <div className='hidden lg:block'>
-                <p className='suntitle-2 capitalize'>{fullName}</p>
+                <p className='subtitle-2 capitalize'>{fullName}</p>
                 <p className='caption'>{email}</p>
             </div>
         </div>

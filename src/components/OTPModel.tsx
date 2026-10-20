@@ -68,12 +68,11 @@ const OtpModal = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <InputOTP maxLength={4} value={otp} onChange={setOtp}>
+        <InputOTP maxLength={6} value={otp} onChange={setOtp}>
           <InputOTPGroup className="shad-otp">
-            <InputOTPSlot index={0} className="shad-otp-slot" />
-            <InputOTPSlot index={1} className="shad-otp-slot" />
-            <InputOTPSlot index={2} className="shad-otp-slot" />
-            <InputOTPSlot index={3} className="shad-otp-slot" />
+            {Array.from({ length: 6 }, (_, i) => (
+              <InputOTPSlot key={i} index={i} className="shad-otp-slot" />
+            ))}
           </InputOTPGroup>
         </InputOTP>
 

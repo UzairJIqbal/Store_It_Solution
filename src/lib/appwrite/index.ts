@@ -1,8 +1,7 @@
-"use server"
-import { Account, Avatars, Client, Databases, Storage } from "node-appwrite"
+// Server-side helpers only. Not a "use server" module: these are not actions and must not be callable from the browser.
+import { Account, Avatars, Client, Databases, Storage, Users } from "node-appwrite"
 import { appwriteConfig } from "./config"
 import { cookies } from "next/headers"
-import { get } from "http"
 export const createSessionClient = async () => {
     const client = new Client()
         .setEndpoint(appwriteConfig.endpointURL)
@@ -40,6 +39,9 @@ export const createAdminClient = async () => {
         },
         get avatars() {
             return new Avatars(client)
+        },
+        get users() {
+            return new Users(client)
         }
     }
 }
