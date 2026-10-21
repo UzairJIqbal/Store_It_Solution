@@ -4,18 +4,23 @@ import VerificationEmail from "../../emails/VerificationEmailTemplate";
 export async function sendVerificationEmail(
   email: string,
   password: string
-): Promise<any> {
+): Promise<{ success: boolean, message: string }> {
   try {
-    await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
+    // Resend reports a rejected email (e.g. a sandbox sender writing to someone else) in `error`, it doesn't throw
+    const { error } = await resend.emails.send({
+      from: "StoreIt <onboarding@resend.dev>",
       to: email,
-      subject: "Mystry Code || Verification Code",
-      react: VerificationEmail({ email, password}),
+      subject: "Your StoreIt sign-in code",
+      react: VerificationEmail({ email, password }),
     });
+    if (error) {
+      console.error("Resend rejected the verification email", error);
+      return { success: false, message: "We couldn't email your sign-in code. Please try again in a minute." };
+    }
 
     return { success: true, message: "Verification Email Send Successfully" };
   } catch (errorEmail) {
-    console.log("Error Sending Verification Email");
-    return { success: false, message: "Failed to send Verification Email" };
+    console.error("Error Sending Verification Email", errorEmail);
+    return { success: false, message: "We couldn't email your sign-in code. Please try again in a minute." };
   }
 }

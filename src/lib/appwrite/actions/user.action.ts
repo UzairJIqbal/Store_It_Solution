@@ -45,20 +45,31 @@ const handleError = (error: unknown, message: string) => {
     throw error;
 };
 
+// Auth actions return { error } instead of throwing: production builds hide thrown messages from the browser,
+// so the form could only ever show a generic failure
 export const createAccount = async ({
     fullName,
     email,
 }: {
     fullName: string;
     email: string;
-}) => {
+}): Promise<{ success: boolean, error?: string }> => {
+    try {
+        return await createOrRefreshAccount({ fullName, email });
+    } catch (error) {
+        console.error("Failed to create account", error);
+        return { success: false, error: "We couldn't create your account. Please try again." };
+    }
+};
+
+const createOrRefreshAccount = async ({ fullName, email }: { fullName: string, email: string }) => {
     email = normalizeEmail(email);
     const existingUser = await getUserByEmail(email);
 
     const otp = generateOtp();
 
     const emailResponse = await sendVerificationEmail(email, otp);
-    if (!emailResponse.success) throw new Error(emailResponse.message);
+    if (!emailResponse.success) return { success: false, error: emailResponse.message };
 
     const { databases } = await createAdminClient();
     const accountId = ID.unique()
@@ -179,32 +190,30 @@ export const signOutUser = async () => {
     redirect("/sign-in")
 }
 
-export const signInuser = async ({ email }: { email: string }) => {
+export const signInuser = async ({ email }: { email: string }): Promise<{ accountId?: string, error?: string }> => {
     try {
-
         const existingUser = await getUserByEmail(email);
-        if (existingUser) {
-            // A new code replaces any earlier one
-            const otp = generateOtp();
-            const { databases } = await createAdminClient()
-            await databases.updateDocument(
-                appwriteConfig.databaseId,
-                appwriteConfig.userCollectionId,
-                existingUser.$id,
-                {
-                    otp,
-                    otpAttempts: 0,
-                    expireAt: new Date(Date.now() + 20 * 60 * 1000)
-                }
-            )
-            await sendVerificationEmail(email, otp);
-        } else {
-            if (!existingUser) {
-                throw new Error("User not found");
+        if (!existingUser) return { error: "No account uses this email yet. Sign up first." };
+
+        // A new code replaces any earlier one
+        const otp = generateOtp();
+        const { databases } = await createAdminClient()
+        await databases.updateDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            existingUser.$id,
+            {
+                otp,
+                otpAttempts: 0,
+                expireAt: new Date(Date.now() + 20 * 60 * 1000)
             }
-        }
-        return paresStringify({ accountId: existingUser?.$id });
-    } catch (error: any) {
-        handleError(error, "Failed to sign In user")
+        )
+        const emailResponse = await sendVerificationEmail(email, otp);
+        if (!emailResponse.success) return { error: emailResponse.message };
+
+        return paresStringify({ accountId: existingUser.$id });
+    } catch (error) {
+        console.error("Failed to sign In user", error);
+        return { error: "We couldn't sign you in. Please try again." };
     }
 }

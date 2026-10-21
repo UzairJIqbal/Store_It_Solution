@@ -44,18 +44,14 @@ const AuthForm = ({ type }: { type: FormType }) => {
         setIsLoading(true)
         setErrorMessage("")
         try {
-
-            type === "sign-up" ?
-                await createAccount({
-                    fullName: values.fullName || '',
-                    email: values.email,
-                }) : type === await signInuser({ email: values.email })
+            const result = type === "sign-up"
+                ? await createAccount({ fullName: values.fullName || '', email: values.email })
+                : await signInuser({ email: values.email })
+            if (result?.error) return setErrorMessage(result.error)
 
             setShowOtpModal(true);
-
-
-        } catch (error) {
-            setErrorMessage("Fail to create again please try again")
+        } catch {
+            setErrorMessage("Something went wrong. Please try again.")
         } finally {
             setIsLoading(false)
         }
