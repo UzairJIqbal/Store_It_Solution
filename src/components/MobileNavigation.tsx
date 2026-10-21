@@ -3,21 +3,20 @@ import React, { useState } from 'react'
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import Image from 'next/image';
-import { Separator } from "@/components/ui/separator"
-import { avatarPlaceholderUrl, navItems } from '../../constants';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn, isNavActive } from '@/lib/utils';
 import FileUploader from './FileUploader';
-import { Button } from './ui/button';
 import { signOutUser } from '@/lib/appwrite/actions/user.action';
 import Logo from './brand/Logo';
 import ThemeToggle from './brand/ThemeToggle';
 import { LogOut, Menu } from 'lucide-react';
+import { navGroups } from './nav/nav-items';
+import { Avatar } from './nav/AccountMenu';
 
 interface props {
     fullName: string,
@@ -32,74 +31,52 @@ const MobileNavigation = ({ fullName, email, accountId, $id: ownerId }: props) =
     return (
         <header className='mobile-header'>
             <Link href='/' className='flex items-center'>
-                <Logo markClassName='size-9' className='[&>span]:text-[22px]' />
+                <Logo markClassName='size-8' className='[&>span]:text-[20px]' />
             </Link>
-            <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger className='mobile-menu-trigger' aria-label='Open menu'>
-                    <Menu className='size-6' aria-hidden />
-                </SheetTrigger>
-                <SheetContent className="shad-sheet h-screen px-3">
-
-                    <SheetTitle>
-                        <div className="header-user">
-                            <Image
-                                src={avatarPlaceholderUrl}
-                                alt="avatar"
-                                width={44}
-                                height={44}
-                                className="header-user-avatar"
-                            />
-                            <div className="sm:hidden lg:block">
-                                <p className="subtitle-2 capitalize">{fullName}</p>
-                                <p className="caption">{email}</p>
+            <div className='flex items-center gap-2'>
+                <FileUploader accountId={accountId} ownerId={ownerId} className='uploader-button-compact' />
+                <Sheet open={open} onOpenChange={setOpen}>
+                    <SheetTrigger className='mobile-menu-trigger' aria-label='Open menu'>
+                        <Menu className='size-6' aria-hidden />
+                    </SheetTrigger>
+                    <SheetContent className="shad-sheet flex h-dvh w-[300px] flex-col gap-0 px-3 pb-4 pt-5">
+                        <div className="mobile-account">
+                            <Avatar fullName={fullName} email={email} />
+                            <div className="min-w-0">
+                                <SheetTitle className="subtitle-2 truncate capitalize text-light-100">{fullName}</SheetTitle>
+                                <SheetDescription className="caption truncate text-light-200">{email}</SheetDescription>
                             </div>
                         </div>
-                        <Separator className="mb-4 bg-light-200/20" />
-                    </SheetTitle>
 
-                    <nav className="mobile-nav">
-                        <ul className="mobile-nav-list">
-                            {navItems.map(({ url, name, icon }) => (
-                                <Link key={name} href={url} className="lg:w-full">
-                                    <li
-                                        className={cn(
-                                            "mobile-nav-item",
-                                            isNavActive(pathname, url) && "shad-active",
-                                        )}
-                                    >
-                                        <Image
-                                            src={icon}
-                                            alt={name}
-                                            width={24}
-                                            height={24}
-                                            className={cn(
-                                                "nav-icon",
-                                                isNavActive(pathname, url) && "nav-icon-active",
-                                            )}
-                                        />
-                                        <p>{name}</p>
-                                    </li>
-                                </Link>
+                        <nav className="mobile-nav" aria-label='Main'>
+                            {navGroups.map((group, g) => (
+                                <ul key={g} className="mobile-nav-list">
+                                    {group.items.map(({ url, name, icon: Icon }) => {
+                                        const active = isNavActive(pathname, url)
+                                        return (
+                                            <li key={name}>
+                                                <Link href={url} onClick={() => setOpen(false)} aria-current={active ? 'page' : undefined}
+                                                    className={cn("mobile-nav-item", active && "shad-active")}>
+                                                    <Icon className='size-5 shrink-0' aria-hidden />
+                                                    {name}
+                                                </Link>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
                             ))}
-                        </ul>
-                    </nav>
+                        </nav>
 
-                    <Separator className="my-5 bg-light-200/20" />
-
-                    <div className="flex flex-col justify-between gap-5 pb-5">
-                        <FileUploader accountId={accountId} ownerId={ownerId} />
-                        <ThemeToggle withLabel className='mobile-theme-toggle' />
-                        <Button
-                            type="submit"
-                            className="mobile-sign-out-button"
-                            onClick={async () => await signOutUser()}
-                        >
-                            <LogOut className='size-5' aria-hidden />
-                            <p>Logout</p>
-                        </Button>
-                    </div>
-                </SheetContent>
-            </Sheet>
+                        <div className="flex flex-col gap-0.5 border-t border-light-300 pt-3">
+                            <ThemeToggle withLabel className='mobile-theme-toggle' />
+                            <button type="button" className="mobile-sign-out-button" onClick={() => { void signOutUser() }}>
+                                <LogOut className='size-5' aria-hidden />
+                                Sign out
+                            </button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+            </div>
         </header>
     )
 }

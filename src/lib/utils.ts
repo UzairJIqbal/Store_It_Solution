@@ -277,3 +277,8 @@ export const groupByRecency = <T,>(items: T[], at: (item: T) => string, now = ne
     }
     return [...groups.entries()]
 }
+
+// Things that arrived from someone else in the last two days get an ember "New" mark
+const NEW_WINDOW_MS = 2 * 24 * 60 * 60 * 1000
+export const isRecentArrival = (date: string | Date | null | undefined, now: Date = new Date()) =>
+  !!date && now.getTime() - new Date(date).getTime() < NEW_WINDOW_MS

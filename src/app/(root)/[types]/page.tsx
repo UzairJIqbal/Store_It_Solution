@@ -1,56 +1,18 @@
-import { SearchParams } from 'next/dist/server/request/search-params'
-import React from 'react'
-import { fileDocument, FileType, SearchParamProps } from '../../../../types'
-import Sort from '@/components/Sort'
-import { getFiles } from '@/lib/appwrite/actions/file.action'
-import { Models } from 'node-appwrite'
-import Card from '@/components/Card'
-import { getFileTypesParams } from '@/lib/utils'
+import { notFound, redirect } from 'next/navigation'
+import { SearchParamProps } from '../../../../types'
 
-const page = async ({ params, searchParams }: SearchParamProps) => {
+// The old category pages live on as the Type filter in search, so old links still land somewhere useful
+const TYPE_FILTER: Record<string, string> = {
+    documents: 'document',
+    images: 'image',
+    media: 'video,audio',
+    others: 'other',
+}
 
-
-    const type = ((await params)?.types as string) || ""
-    const searchText = ((await searchParams)?.query as string) || ""
-
-
-
-
-    const sort = ((await searchParams)?.sort as string) || ""
-    const types = getFileTypesParams(type) as FileType[]
-
-    const files = await getFiles({ types, searchText, sort })
-
-    return (
-        <div className='page-container'>
-            <section className='w-full'>
-                <h1 className='h1 capitalize'>{type}</h1>
-
-                <div className='total-size-section'>
-                    <p className='body-1'>
-                        Total : <span>O MB</span>
-                    </p>
-                    <div className='sort-container'>
-                        <p className='body-1 hidden sm:block text-light-200'>
-                            Sort By :
-                        </p>
-                        <Sort />
-                    </div>
-                </div>
-            </section>
-            {files.total > 0 ? (
-                <section className="file-list">
-                    {
-                        files.documents.map((file: fileDocument, index: number) => {
-                            return <Card key={file.$id} file={file} files={files.documents} index={index} />
-                        })
-                    }
-                </section>
-            ) : (
-                <p className="empty-list">No files uploaded</p>
-            )}
-        </div>
-    )
+const page = async ({ params }: SearchParamProps) => {
+    const type = TYPE_FILTER[((await params)?.types as string) ?? '']
+    if (!type) notFound()
+    redirect(`/search?type=${type}`)
 }
 
 export default page

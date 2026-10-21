@@ -67,7 +67,7 @@ const SearchResults = ({ hits, filters, hasMore }: { hits: SearchHit[], filters:
                 <p className='subtitle-2'>Modified</p>
                 <span />
             </div>
-            <ul ref={list} className='flex flex-col gap-2' onKeyDown={onKeyDown} aria-label='Search results'>
+            <ul ref={list} className='lifecycle-list' onKeyDown={onKeyDown} aria-label='Search results'>
                 {hits.map((hit) => {
                     const name = hit.kind === 'file' ? hit.file.name : hit.folder.name
                     const updated = hit.kind === 'file' ? hit.file.$updatedAt : hit.folder.$updatedAt

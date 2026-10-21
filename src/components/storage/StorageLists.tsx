@@ -72,7 +72,7 @@ const StorageLists = ({ largest, versions, duplicates, largeThreshold }: {
                 ) : (
                     <>
                         <ListHeader />
-                        <ul className='mt-2 flex flex-col gap-2'>
+                        <ul className='lifecycle-list mt-2'>
                             {largest.map((file, index) => (
                                 <li key={file.$id} className={ROW}>
                                     <FileCell files={largest} index={index} subtitle={`${convertFileSize(file.size)} · ${formatDateTime(file.$updatedAt)}`} />
@@ -93,7 +93,7 @@ const StorageLists = ({ largest, versions, duplicates, largeThreshold }: {
                 <Section id='versions' title='Old versions'
                     hint='Every earlier version is kept and counts towards your storage. Delete the ones you no longer need.'>
                     <ListHeader size='Versions' date='Space used' />
-                    <ul className='mt-2 flex flex-col gap-2'>
+                    <ul className='lifecycle-list mt-2'>
                         {versions.map(({ file, versions: count, size }, index) => (
                             <li key={file.$id} className={ROW}>
                                 <FileCell files={versionFiles} index={index} subtitle={`${count} old · ${convertFileSize(size)}`} />
@@ -117,7 +117,7 @@ const StorageLists = ({ largest, versions, duplicates, largeThreshold }: {
                                 <p className='subtitle-2 mb-2 px-4 text-light-200'>
                                     {group.name} · {group.files.length} copies · {convertFileSize(group.size)} each
                                 </p>
-                                <ul className='flex flex-col gap-2'>
+                                <ul className='lifecycle-list'>
                                     {group.files.map((file, index) => (
                                         <li key={file.$id} className={ROW}>
                                             <FileCell files={group.files} index={index} subtitle={`Uploaded ${formatDateTime(file.$createdAt)}`} />

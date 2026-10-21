@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, ExternalLink, FileQuestion, Info, Loader2, Music, Star, UserPlus, X } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, ExternalLink, FileQuestion, Info, Loader2, Music, Star, UserPlus } from 'lucide-react'
 import { errorToast, undoToast } from '@/lib/undo'
 import { fileDocument } from '../../../types'
 import Thumbnail from '@/components/Thumbnail'
@@ -201,15 +201,15 @@ const FilePreview = ({ files, index, onIndexChange, onClose, onShare, onStarChan
                 <div className='flex shrink-0 items-center gap-1'>
                     <button type='button' className='preview-icon-btn' onClick={star} aria-pressed={starred}
                         aria-label={starred ? 'Remove from Starred' : 'Add to Starred'} title={starred ? 'Remove from Starred' : 'Add to Starred'}>
-                        <Star className={cn('size-5', starred && 'fill-current text-yellow-300')} aria-hidden />
+                        <Star className={cn('size-5', starred && 'fill-current text-[rgb(var(--ember))]')} aria-hidden />
                     </button>
                     {canShare && (
-                        <button type='button' className='preview-icon-btn' onClick={() => onShare(file)} aria-label='Share' title='Share'>
-                            <UserPlus className='size-5' aria-hidden />
+                        <button type='button' className='preview-text-btn' onClick={() => onShare(file)} aria-label='Share'>
+                            <UserPlus className='size-5' aria-hidden /><span className='hidden md:inline'>Share</span>
                         </button>
                     )}
-                    <a href={fileDownloadUrl(file.$id)} download={file.name} className='preview-icon-btn' aria-label='Download' title='Download'>
-                        <Download className='size-5' aria-hidden />
+                    <a href={fileDownloadUrl(file.$id)} download={file.name} className='preview-text-btn' aria-label='Download'>
+                        <Download className='size-5' aria-hidden /><span className='hidden md:inline'>Download</span>
                     </a>
                     <a href={fileViewUrl(file.$id)} target='_blank' rel='noopener noreferrer' className='preview-icon-btn' aria-label='Open in new tab' title='Open in new tab'>
                         <ExternalLink className='size-5' aria-hidden />
@@ -217,9 +217,6 @@ const FilePreview = ({ files, index, onIndexChange, onClose, onShare, onStarChan
                     <button type='button' className={cn('preview-icon-btn', showDetails && 'bg-white/20')} onClick={() => setShowDetails((v) => !v)}
                         aria-pressed={showDetails} aria-label='Details' title='Details'>
                         <Info className='size-5' aria-hidden />
-                    </button>
-                    <button type='button' className='preview-icon-btn' onClick={onClose} aria-label='Close' title='Close (Esc)'>
-                        <X className='size-5' aria-hidden />
                     </button>
                 </div>
             </header>

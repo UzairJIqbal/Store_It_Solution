@@ -5,8 +5,11 @@ import Thumbnail from '@/components/Thumbnail'
 import OpenFile from '@/components/lifecycle/OpenFile'
 import { getStarred, StarredSort } from '@/lib/appwrite/actions/lifecycle.action'
 import { cn, convertFileSize, formatDateTime } from '@/lib/utils'
+import EmptyState from '@/components/EmptyState'
+import { Star } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Starred' }
 
 const SORTS: { value: StarredSort, label: string }[] = [
     { value: 'starred', label: 'Date starred' },
@@ -42,7 +45,9 @@ const StarredPage = async ({ searchParams }: { searchParams: Promise<{ sort?: st
             </section>
 
             {items.length === 0 ? (
-                <p className='empty-list'>Star files you want to find quickly later</p>
+                <EmptyState icon={Star} title='No starred files yet' action={{ href: '/files', label: 'Go to My Files' }}>
+                    Star the files you come back to most. Open a file&apos;s ⋮ menu and choose Add to Starred, and it will wait for you here.
+                </EmptyState>
             ) : (
                 <div className='w-full'>
                     <div className='lifecycle-list-header md:grid-cols-[minmax(0,1fr)_200px_180px_96px_40px]'>
@@ -52,7 +57,7 @@ const StarredPage = async ({ searchParams }: { searchParams: Promise<{ sort?: st
                         <p className='subtitle-2'>Size</p>
                         <span />
                     </div>
-                    <ul className='mt-4 flex flex-col gap-2'>
+                    <ul className='lifecycle-list mt-4'>
                         {items.map(({ file, starredAt }, index) => (
                             <li key={file.$id} className='lifecycle-row grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_200px_180px_96px_40px]'>
                                 <OpenFile files={files} index={index} className='flex min-w-0 cursor-pointer items-center gap-3'>

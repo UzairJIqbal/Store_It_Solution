@@ -587,6 +587,8 @@ const FileBrowser = ({ folder, breadcrumbs, folders, files }: Props) => {
             role: 'option',
             'aria-selected': isSelected,
             tabIndex: focusKey === item.key || (!focusKey && item === displayItems[0]) ? 0 : -1,
+            // The ⋮ button stays out of the tab order (rows are one composite widget); the menu opens from the keyboard
+            'aria-keyshortcuts': 'Shift+F10',
             onFocus: () => setFocusKey(item.key),
             draggable: true,
             onClick: (e: React.MouseEvent) => onItemClick(e, item),
@@ -638,10 +640,11 @@ const FileBrowser = ({ folder, breadcrumbs, folders, files }: Props) => {
                 {single && <DropdownMenuItem onSelect={() => openItem(single)}>{single.file ? <Eye /> : <FolderOpen />}Open<DropdownMenuShortcut>Enter</DropdownMenuShortcut></DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => download(targets)}><Download />Download</DropdownMenuItem>
                 <DropdownMenuSeparator />
+                {single?.file && <DropdownMenuItem onSelect={() => openShare(single.file!)}><UserPlus />Share</DropdownMenuItem>}
                 {single && <DropdownMenuItem onSelect={() => setDialog({ type: 'rename', item: single })}><Pencil />Rename<DropdownMenuShortcut>F2</DropdownMenuShortcut></DropdownMenuItem>}
                 {single?.file && <DropdownMenuItem onSelect={() => performCopy(single)}><Copy />Make a copy</DropdownMenuItem>}
-                {single?.file && <DropdownMenuItem onSelect={() => openShare(single.file!)}><UserPlus />Share</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => setDialog({ type: 'move', items: targets })}><FolderInput />Move to…<DropdownMenuShortcut>M</DropdownMenuShortcut></DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {withFiles.length > 0 && (
                     <DropdownMenuItem onSelect={() => performStar(targets)}>
                         <Star className={cn(withFiles[0].file!.isStarred && 'fill-current')} />
@@ -719,6 +722,11 @@ const FileBrowser = ({ folder, breadcrumbs, folders, files }: Props) => {
                         </button>
                         <p className='subtitle-2 mr-2 whitespace-nowrap' aria-live='polite'>{selectedItems.length} selected</p>
                         <span className='toolbar-divider' aria-hidden />
+                        {selectedItems.length === 1 && selectedItems[0].file && (
+                            <button type='button' className='toolbar-icon-btn' onClick={() => openShare(selectedItems[0].file!)} aria-label='Share' title='Share'>
+                                <UserPlus className='size-5' aria-hidden />
+                            </button>
+                        )}
                         <button type='button' className='toolbar-icon-btn' onClick={() => setDialog({ type: 'move', items: selectedItems })} aria-label='Move to' title='Move to'>
                             <FolderInput className='size-5' aria-hidden />
                         </button>
@@ -779,7 +787,7 @@ const FileBrowser = ({ folder, breadcrumbs, folders, files }: Props) => {
                         ))}
                     </div>
 
-                    <button type='button' className='toolbar-icon-btn' onClick={() => setDialog({ type: 'shortcuts' })} aria-label='Keyboard shortcuts' title='Keyboard shortcuts (?)'>
+                    <button type='button' className='toolbar-icon-btn toolbar-keyboard-btn' onClick={() => setDialog({ type: 'shortcuts' })} aria-label='Keyboard shortcuts' title='Keyboard shortcuts (?)'>
                         <Keyboard className='size-5' aria-hidden />
                     </button>
                 </div>

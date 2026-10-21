@@ -1,4 +1,5 @@
 'use client'
+import { Avatar as InitialsAvatar } from './nav/AccountMenu'
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown, Globe, Link2, Loader2, Lock, X } from 'lucide-react'
@@ -18,13 +19,9 @@ import { LinkAccess, ShareRole } from '../../types'
 const EMAIL_PATTERN = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/
 const ROLE_LABEL = { viewer: 'Viewer', editor: 'Editor', owner: 'Owner' } as const
 
-const Avatar = ({ person }: { person: Pick<SharingPerson, 'name' | 'email' | 'avatar'> }) => (
-    person.avatar
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={person.avatar} alt='' className='size-9 shrink-0 rounded-full object-cover' />
-        : <span className='flex size-9 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold uppercase text-brand'>
-            {(person.name || person.email).slice(0, 1)}
-        </span>
+// Initials for everyone: stored avatars are the same stock placeholder, which rendered as a blank circle
+const Avatar = ({ person }: { person: Pick<SharingPerson, 'name' | 'email'> }) => (
+    <InitialsAvatar fullName={person.name ?? ''} email={person.email} />
 )
 
 const RoleMenu = ({ value, onChange, disabled, children }: {
@@ -222,7 +219,7 @@ const ShareDialog = ({ file, path, onDone }: Props) => {
                 <div className='flex flex-col gap-3'>
                     <div className='flex items-start gap-2'>
                         <div
-                            className='flex min-h-[48px] flex-1 flex-wrap items-center gap-1.5 rounded-[20px] border border-light-200/60 px-3 py-2 focus-within:border-brand'
+                            className='flex min-h-[48px] flex-1 flex-wrap items-center gap-1.5 rounded-xl border border-light-200/60 px-3 py-2 focus-within:border-brand'
                             onClick={() => inputRef.current?.focus()}
                         >
                             {chips.map((email) => {
@@ -286,7 +283,7 @@ const ShareDialog = ({ file, path, onDone }: Props) => {
                                     maxLength={1000}
                                     rows={3}
                                     placeholder='Message (optional)'
-                                    className='body-2 resize-none rounded-[20px] border border-light-200/60 px-4 py-3 outline-none focus:border-brand'
+                                    className='body-2 resize-none rounded-xl border border-light-200/60 px-4 py-3 outline-none focus:border-brand'
                                 />
                             )}
                             <div className='flex flex-col gap-3 md:flex-row'>

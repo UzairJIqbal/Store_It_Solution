@@ -15,7 +15,7 @@ const DropsPage = () => (
             <h1 className='h1'>Drop links</h1>
             <p className='body-1 mt-2 text-light-200'>Collect files from anyone with a link: no account needed, and nobody sees what others sent.</p>
         </section>
-        <Suspense fallback={<div className='skeleton h-[180px] w-full rounded-[20px]' />}><DropsList /></Suspense>
+        <Suspense fallback={<div className='skeleton h-[180px] w-full rounded-2xl' />}><DropsList /></Suspense>
     </div>
 )
 

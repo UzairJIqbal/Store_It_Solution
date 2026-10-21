@@ -40,11 +40,6 @@ const getUserByEmail = async (email: string) => {
     return result.total > 0 ? result.documents[0] : null;
 };
 
-const handleError = (error: unknown, message: string) => {
-    console.log(error, message);
-    throw error;
-};
-
 // Auth actions return { error } instead of throwing: production builds hide thrown messages from the browser,
 // so the form could only ever show a generic failure
 export const createAccount = async ({
@@ -108,29 +103,32 @@ const createOrRefreshAccount = async ({ fullName, email }: { fullName: string, e
     };
 };
 
+// Returns { error } rather than throwing, so the code screen can say what went wrong and what to do next
 export const verifySecret = async ({
     email,
     otp,
 }: {
     email: string;
     otp: string;
-}) => {
+}): Promise<{ success: boolean, error?: string }> => {
     try {
         const user = await getUserByEmail(email);
-        if (!user) throw new Error("User not found");
-
+        if (!user) return { success: false, error: "No account uses this email yet. Go back and sign up first." };
 
         const { databases } = await createAdminClient();
+        if (!user.otp) return { success: false, error: "This code has expired. Send a new code and try again." };
         if (!otpMatches(user.otp, otp) || !user.expireAt || new Date(user.expireAt) < new Date()) {
             // Too many wrong guesses throw the code away, so a 6-digit code can't be brute-forced
             const attempts = (user.otpAttempts ?? 0) + 1;
-            if (user.otp) {
-                await databases.updateDocument(appwriteConfig.databaseId, appwriteConfig.userCollectionId, user.$id,
-                    attempts >= MAX_OTP_ATTEMPTS
-                        ? { otp: null, expireAt: null, otpAttempts: 0 }
-                        : { otpAttempts: attempts });
-            }
-            throw new Error("Invalid or expired OTP");
+            const exhausted = attempts >= MAX_OTP_ATTEMPTS;
+            await databases.updateDocument(appwriteConfig.databaseId, appwriteConfig.userCollectionId, user.$id,
+                exhausted ? { otp: null, expireAt: null, otpAttempts: 0 } : { otpAttempts: attempts });
+            return {
+                success: false,
+                error: exhausted
+                    ? "Too many wrong tries, so that code no longer works. Send a new code."
+                    : "That code doesn't match or has expired. Check the latest email, or send a new code.",
+            };
         }
 
         // Each code works once
@@ -155,7 +153,8 @@ export const verifySecret = async ({
 
         return { success: true };
     } catch (error) {
-        handleError(error, "Failed to verify OTP");
+        console.error("Failed to verify OTP", error);
+        return { success: false, error: "We couldn't check your code. Please try again." };
     }
 };
 

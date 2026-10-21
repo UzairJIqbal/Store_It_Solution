@@ -16,7 +16,7 @@ export const RowSkeleton = ({ columns = 3 }: { columns?: number }) => (
 )
 
 export const ListSkeleton = ({ rows = 6, columns = 3, label = 'Loading' }: { rows?: number, columns?: number, label?: string }) => (
-    <div role='status' aria-label={label} className='flex w-full flex-col gap-2'>
+    <div role='status' aria-label={label} className='lifecycle-list w-full'>
         {Array.from({ length: rows }, (_, i) => <RowSkeleton key={i} columns={columns} />)}
     </div>
 )

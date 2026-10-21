@@ -14,9 +14,10 @@ export default {
     theme: {
         extend: {
             colors: {
-                border: "hsl(var(--border))",
-                background: "hsl(var(--background))",
-                foreground: "hsl(var(--foreground))",
+                // shadcn's names, pointed at the same tokens as everything else
+                border: token("line"),
+                background: token("canvas"),
+                foreground: token("ink"),
 
                 // StoreIt Indigo, with an Ember accent
                 brand: {
@@ -25,12 +26,18 @@ export default {
                 },
                 ember: token("ember"),
                 // shadcn's hover/focus fill for menu items and ghost buttons
-                accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+                accent: { DEFAULT: token("canvas"), foreground: token("ink") },
+                primary: { DEFAULT: token("brand"), foreground: "#ffffff" },
+                secondary: { DEFAULT: token("canvas"), foreground: token("ink") },
+                muted: { DEFAULT: token("canvas"), foreground: token("ink-muted") },
+                popover: { DEFAULT: token("surface"), foreground: token("ink") },
+                card: { DEFAULT: token("surface"), foreground: token("ink") },
+                destructive: { DEFAULT: token("error"), foreground: "#ffffff" },
+                input: token("line"),
+                ring: token("brand"),
                 // Cards, menus and dialogs; the page behind them is light-400
                 surface: token("surface"),
-                red: {
-                    DEFAULT: "#F0616D",
-                },
+                red: token("error"),
                 error: token("error"),
                 green: "#2BC4A0",
                 blue: "#4FA8F7",
@@ -43,7 +50,7 @@ export default {
                     400: token("canvas"),
                 },
                 dark: {
-                    100: "#07071A",
+                    100: token("ink-strong"),
                     200: token("ink-strong"),
                 },
             },
@@ -52,6 +59,17 @@ export default {
             backgroundColor: {
                 white: token("surface"),
             },
+            // Fills use --brand; text uses --brand-ink, which stays readable on the dark surface
+            textColor: {
+                brand: {
+                    DEFAULT: token("brand-ink"),
+                    100: token("brand-ink-strong"),
+                },
+                ember: token("ember-ink"),
+            },
+            ringColor: {
+                DEFAULT: token("brand"),
+            },
             fontFamily: {
                 sans: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
                 display: ["var(--font-display)", "var(--font-body)", "ui-sans-serif", "sans-serif"],
@@ -59,13 +77,13 @@ export default {
             },
             boxShadow: {
                 "drop-1": "0px 10px 30px 0px rgb(var(--shadow) / 0.08)",
-                "drop-2": "0px 8px 24px 0px rgb(var(--brand) / 0.35)",
+                "drop-2": "0px 6px 16px 0px rgb(var(--shadow) / 0.14)",
                 "drop-3": "0px 8px 30px 0px rgb(var(--shadow) / 0.12)",
             },
             borderRadius: {
-                lg: "var(--radius)",
-                md: "calc(var(--radius) - 2px)",
-                sm: "calc(var(--radius) - 4px)",
+                lg: "10px",
+                md: "8px",
+                sm: "6px",
             },
             keyframes: {
                 "caret-blink": {

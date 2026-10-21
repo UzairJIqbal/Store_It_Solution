@@ -89,7 +89,7 @@ const TrashView = ({ items, days }: { items: TrashItem[], days: number }) => {
                     {groups.map(([group, rows]) => (
                         <section key={group} className='mt-4'>
                             <h2 className='subtitle-2 px-4 pb-2 text-light-200'>{group}</h2>
-                            <ul className='flex flex-col gap-2'>
+                            <ul className='lifecycle-list'>
                                 {rows.map((item) => {
                                     const left = daysLeft(item.deleteAfter)
                                     return (

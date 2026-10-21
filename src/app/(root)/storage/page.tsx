@@ -8,6 +8,7 @@ import { getStorageReport, StorageReport } from '@/lib/appwrite/actions/discover
 import { cn, convertFileSize, formatUsagePercent, getUsageLevel } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Storage' }
 
 const Breakdown = ({ report }: { report: StorageReport }) => {
     const percent = report.limit > 0 ? Math.min((report.used / report.limit) * 100, 100) : 0
@@ -78,7 +79,7 @@ const CleanupCards = ({ report }: { report: StorageReport }) => {
                                 <span className='subtitle-1 text-light-100'>{convertFileSize(size)}</span>
                             </div>
                             <p className='subtitle-2 text-light-100'>{title}</p>
-                            <p className='caption flex-1 text-light-200'>{text}</p>
+                            <p className='body-2 flex-1 text-light-200'>{text}</p>
                             <Link href={href} className='search-text-btn -ml-3 self-start'>{cta}</Link>
                         </li>
                     ))}

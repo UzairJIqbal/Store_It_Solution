@@ -5,7 +5,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { useTheme } from 'next-themes'
 import { useDebounce } from 'use-debounce'
 import {
-    ArrowLeft, ChevronRight, CornerDownLeft, Download, Eye, Folder, FolderOpen, FolderPlus, Inbox, Info, LogOut,
+    ArrowLeft, ChevronRight, CornerDownLeft, Download, Eye, Filter, Folder, FolderOpen, FolderPlus, Inbox, Info, LogOut,
     MapPin, Moon, Search, Star, Sun, Trash2, Upload, UserPlus,
 } from 'lucide-react'
 import Thumbnail from '@/components/Thumbnail'
@@ -18,7 +18,7 @@ import type { SearchHit } from '@/lib/appwrite/actions/discover'
 import { NEW_FOLDER_EVENT, OPEN_PALETTE_EVENT } from '@/lib/events'
 import { searchHref } from '@/lib/search'
 import { cn, fileDownloadUrl, formatDateTime } from '@/lib/utils'
-import { navItems } from '../../../constants'
+import { navLinks, typeShortcuts } from '@/components/nav/nav-items'
 import { fileDocument } from '../../../types'
 
 type Command = {
@@ -175,11 +175,15 @@ const CommandPalette = () => {
             { id: 'signout', group: 'Actions', label: 'Sign out', keywords: 'log out logout', icon: <LogOut />, run: act(() => { void signOutUser() }) },
         ]
         const pages: Command[] = [
-            ...navItems.map((n) => ({
+            ...navLinks.map((n) => ({
                 id: `nav-${n.url}`, group: 'Go to', label: n.name, keywords: 'page open view',
-                // The nav icons are white artwork tinted with CSS
-                icon: <img src={n.icon} alt='' className='palette-nav-icon' />,
+                icon: <n.icon />,
                 run: act(() => router.push(n.url)),
+            })),
+            ...typeShortcuts.map((t) => ({
+                id: `type-${t.url}`, group: 'Go to', label: t.name, keywords: 'type kind filter category',
+                icon: <Filter />,
+                run: act(() => router.push(t.url)),
             })),
         ]
 

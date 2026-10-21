@@ -10,6 +10,7 @@ import { getTotalSpaceUsed } from '@/lib/appwrite/actions/file.action'
 import { cn, convertFileSize, formatDateTime, formatUsagePercent, getUsageLevel } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Home' }
 
 const SUGGESTED_FILES = 10
 
@@ -94,7 +95,7 @@ const Home = () => (
             <Suspense fallback={<ListSkeleton rows={5} columns={3} label='Loading suggested files' />}><SuggestedFilesSection /></Suspense>
         </HomeSection>
 
-        <Suspense fallback={<Skeleton className='h-[76px] w-full rounded-[18px]' />}><StorageStrip /></Suspense>
+        <Suspense fallback={<Skeleton className='h-[76px] w-full rounded-2xl' />}><StorageStrip /></Suspense>
     </div>
 )
 

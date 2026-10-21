@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { createDrop, deleteDrop, DropExpiry, setDropEnabled } from '@/lib/appwrite/actions/drop.action'
 import type { MyDrop } from '@/lib/appwrite/actions/drops'
-import { cn, formatDateTime } from '@/lib/utils'
+import EmptyState from '@/components/EmptyState'
+import { cn, formatDateTime, isRecentArrival } from '@/lib/utils'
 
 const EXPIRY_OPTIONS: { label: string, value: DropExpiry }[] = [
     { label: '1 day', value: 1 },
@@ -111,7 +112,10 @@ const DropCard = ({ drop }: { drop: MyDrop }) => {
                 <span className={cn('drops-status', STATUS_CLASS[drop.status])}>{STATUS_LABEL[drop.status]}</span>
             </div>
             <div className='min-w-0'>
-                <h2 className='subtitle-1 truncate text-light-100'>{drop.title}</h2>
+                <h2 className='flex items-center gap-2'>
+                    <span className='subtitle-1 truncate text-light-100'>{drop.title}</span>
+                    {isRecentArrival(drop.lastReceivedAt) && <span className='new-badge'>New files</span>}
+                </h2>
                 <p className='caption text-light-200'>
                     {drop.filesReceived} {drop.filesReceived === 1 ? 'file' : 'files'} received
                     {drop.lastReceivedAt ? ` · last ${formatDateTime(drop.lastReceivedAt)}` : ''}
@@ -182,13 +186,9 @@ const DropsManager = ({ drops }: { drops: MyDrop[] }) => {
             )}
             {drops.length === 0 ? (
                 !creating && (
-                    <div className='home-empty flex-row items-center gap-4'>
-                        <span className='empty-state-art !mb-0 !size-12'><Inbox className='size-6' aria-hidden /></span>
-                        <div>
-                            <p className='subtitle-2 text-light-100'>No drop links yet</p>
-                            <p className='body-2 text-light-200'>Create one to collect files from anyone, even people without a StoreIt account.</p>
-                        </div>
-                    </div>
+                    <EmptyState icon={Inbox} title='No drop links yet'>
+                        Create one to collect files from anyone, even people without a StoreIt account.
+                    </EmptyState>
                 )
             ) : (
                 <ul className='drops-grid stagger'>

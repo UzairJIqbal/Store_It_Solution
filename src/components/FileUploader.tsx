@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
+import { Upload as UploadIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { toast } from 'sonner'
 import { isIgnoredFile, readDrop } from '@/lib/upload/collectDrop'
@@ -145,20 +145,15 @@ const FileUploader = ({ className, globalDrop = false }: Props) => {
                     type='button'
                     className={cn('uploader-button', className)}
                 >
-                    <Image
-                        src="/assets/icons/upload.svg"
-                        alt="upload"
-                        width={24}
-                        height={24}
-                    />
-                    <p>Upload</p>
+                    <UploadIcon className='size-5' aria-hidden />
+                    <span>Upload</span>
                 </Button>
             </div>
 
             {dropTarget && (
                 <div className='uploader-drop-overlay' aria-hidden>
                     <div className='uploader-drop-message'>
-                        <Image src="/assets/icons/upload.svg" alt="" width={24} height={24} />
+                        <UploadIcon className="size-5" aria-hidden />
                         <p>Drop to upload to <span className='font-semibold'>{dropTarget.name}</span></p>
                     </div>
                 </div>

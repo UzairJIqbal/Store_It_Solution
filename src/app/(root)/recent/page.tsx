@@ -5,8 +5,11 @@ import OpenFile from '@/components/lifecycle/OpenFile'
 import { getRecent } from '@/lib/appwrite/actions/lifecycle.action'
 import { REASON_LABEL } from '@/lib/recent'
 import { formatDateTime, groupByRecency } from '@/lib/utils'
+import EmptyState from '@/components/EmptyState'
+import { Clock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Recent' }
 
 const RecentPage = async () => {
     const items = await getRecent()
@@ -20,7 +23,9 @@ const RecentPage = async () => {
             </section>
 
             {items.length === 0 ? (
-                <p className='empty-list'>Files you open or change will show up here</p>
+                <EmptyState icon={Clock} title='Nothing recent yet'>
+                    Files you open, upload or change show up here, newest first.
+                </EmptyState>
             ) : (
                 <div className='w-full'>
                     <div className='lifecycle-list-header md:grid-cols-[minmax(0,1fr)_200px_180px_40px]'>
@@ -32,7 +37,7 @@ const RecentPage = async () => {
                     {groups.map(([group, rows]) => (
                         <section key={group} className='mt-4'>
                             <h2 className='subtitle-2 px-4 pb-2 text-light-200'>{group}</h2>
-                            <ul className='flex flex-col gap-2'>
+                            <ul className='lifecycle-list'>
                                 {rows.map(({ file, at, reason }, index) => (
                                     <li key={file.$id} className='lifecycle-row grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_200px_180px_40px]'>
                                         <OpenFile files={rows.map((r) => r.file)} index={index} className='flex min-w-0 cursor-pointer items-center gap-3'>

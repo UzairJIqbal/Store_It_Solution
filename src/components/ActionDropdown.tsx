@@ -1,9 +1,8 @@
 'use client'
 import React, { useState } from 'react'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Download, Eye, History, Info, Pencil, Star, Trash2, UserPlus } from 'lucide-react'
+import { Download, Eye, History, Info, Loader2, MoreVertical, Pencil, Star, Trash2, UserPlus } from 'lucide-react'
 import { fileDocument } from '../../types'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
@@ -81,8 +80,8 @@ const ActionDropdown = ({ file, className, files, index }: {
     return (
         <>
             <DropdownMenu>
-                <DropdownMenuTrigger className={cn("shad-no-focus", className)} onClick={(e) => e.stopPropagation()} aria-label={`More actions for ${file.name}`}>
-                    <Image src="/assets/icons/dots.svg" alt="" width={34} height={34} />
+                <DropdownMenuTrigger className={cn("item-more-btn size-10", className)} onClick={(e) => e.stopPropagation()} aria-label={`More actions for ${file.name}`}>
+                    <MoreVertical className='size-5' aria-hidden />
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent onClick={(e) => e.stopPropagation()} className='browser-menu'>
@@ -121,7 +120,7 @@ const ActionDropdown = ({ file, className, files, index }: {
                         <Button onClick={() => setRenaming(false)} className="modal-cancel-button">Cancel</Button>
                         <Button onClick={rename} className="modal-submit-button" disabled={isloading || !name.trim()}>
                             <p>Rename</p>
-                            {isloading && <Image src="/assets/icons/loader.svg" alt="loader" width={24} height={24} className="animate-spin" />}
+                            {isloading && <Loader2 className='size-5 animate-spin' aria-hidden />}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

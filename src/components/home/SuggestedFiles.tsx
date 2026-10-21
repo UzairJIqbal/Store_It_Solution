@@ -76,7 +76,7 @@ const SuggestedFiles = ({ items }: { items: RecentItem[] }) => {
                         <p className='subtitle-2'>Owner</p>
                         <span />
                     </div>
-                    <ul className='mt-2 flex flex-col gap-2'>
+                    <ul className='lifecycle-list mt-2'>
                         {items.map(({ file, at, reason }, index) => (
                             <li key={file.$id} className='lifecycle-row grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_220px_160px_40px]'>
                                 <OpenFile files={files} index={index} className='flex min-w-0 cursor-pointer items-center gap-3'>
