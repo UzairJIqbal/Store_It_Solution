@@ -129,3 +129,7 @@ src/lib/appwrite/actions/  server actions (upload, sharing, lifecycle, drops, sm
 src/lib/smart/          in-browser file analysis
 scripts/                Appwrite schema setup
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
